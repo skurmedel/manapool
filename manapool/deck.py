@@ -23,5 +23,5 @@ class Deck(Tuple[Card]):
         return super(Deck, cls).__new__(cls, tuple(args))
 
     @property
-    def empty(self):
+    def empty(self) -> bool:
         return len(self) == 0

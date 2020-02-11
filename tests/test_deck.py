@@ -29,3 +29,15 @@ def test_deck_constructor_not_empty():
 
 def test_deck_empty_equals_empty():
     assert (Deck() == Deck())
+
+
+def test_deck_contains():
+    a = Card("Riemann")
+    b = Card("Euler")
+    c = Card("Martin-Löf")
+
+    deck = Deck(a, b)
+
+    assert (a in deck)
+    assert (b in deck)
+    assert (c not in deck)
