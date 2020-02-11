@@ -16,6 +16,11 @@ def test_card_constructor_mvid_defaults_unknown():
     assert (c.mvid == UNKNOWN)
 
 
+def test_card_constructor_cost_defaults_unknown():
+    c = Card("Riemann")
+    assert (c.cost == UNKNOWN)
+
+
 def test_card_constructor_mvid_accepts_unknown_or_int():
     c = Card("Purphoros's Intervention", mvid=476402)
     assert (c.mvid == 476402)
@@ -28,6 +33,18 @@ def test_card_constructor_mvid_accepts_unknown_or_int():
 
     c = Card("Purphoros's Intervention", mvid="476402")
     assert (c.mvid == 476402)
+
+
+def test_card_constructor_cost_accepts_unknown_or_manacost():
+    cost = ManaCost({Colour.Blue:2})
+    c = Card("Purphoros's Intervention", cost=cost)
+    assert (c.cost == cost)
+
+    c = Card("Riemann", cost=UNKNOWN)
+    assert (c.cost == UNKNOWN)
+
+    with pytest.raises(ValueError):
+        Card("Riemann", cost="Euler")
 
 
 def test_card_title_str_converts():

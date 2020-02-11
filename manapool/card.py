@@ -24,42 +24,6 @@ class Unknown(metaclass=_Singleton):
 UNKNOWN = Unknown()
 
 
-class Card:
-    """Represents a MtG card. The only required attribute is the title.
-
-    Cards are immutable. Clone with new values if you need to change an attribute.
-    """
-
-    def __init__(self, title: str, mvid: Union[Unknown, int] = UNKNOWN):
-        """
-        :param title: The title of the card. Is converted to a str, but the value may not be the
-            empty string. May not be None.
-        :param mvid: The multiverse id. Assigned by Wizards of the Coast. Uniquely identifies a card.
-
-        :raises ValueError:
-        """
-        if title is None:
-            raise ValueError("None is not accepted as a title.")
-        title = str(title)
-        if title == "":
-            raise ValueError("Empty string.")
-        self._title = title
-
-        if isinstance(mvid, Unknown):
-            self._mvid = mvid
-        else:
-            self._mvid = int(mvid)
-
-    @property
-    def title(self) -> str:
-        return self._title
-
-    @property
-    def mvid(self) -> Union[Unknown, int]:
-        """The multiverse ID."""
-        return self._mvid
-
-
 @unique
 class Colour(Enum):
     """Represents a mana colour. It also contains the Colourless and Generic pseudo-colours. """
@@ -92,7 +56,7 @@ class ManaCost:
         self._colours = [0] * len(Colour)
         if values is None:
             raise ValueError("None is not an accepted value.")
-        for k,v in values.items():
+        for k, v in values.items():
             if not isinstance(v, int):
                 raise ValueError("non integer argument.")
             if v < 0:
@@ -143,3 +107,49 @@ class ManaCost:
             raise TypeError("other must be a ManaCost object.")
 
         return self._colours == other._colours
+
+
+class Card:
+    """Represents a MtG card. The only required attribute is the title.
+
+    Cards are immutable. Clone with new values if you need to change an attribute.
+    """
+
+    def __init__(self, title: str, cost: Union[Unknown, ManaCost] = UNKNOWN, mvid: Union[Unknown, int] = UNKNOWN):
+        """
+        :param title: The title of the card. Is converted to a str, but the value may not be the
+            empty string. May not be None.
+        :param cost: The mana cost.
+        :param mvid: The multiverse id. Assigned by Wizards of the Coast. Uniquely identifies a card.
+
+        :raises ValueError:
+        """
+        if title is None:
+            raise ValueError("None is not accepted as a title.")
+        title = str(title)
+        if title == "":
+            raise ValueError("Empty string.")
+        self._title = title
+
+        if isinstance(cost, Unknown) or isinstance(cost, ManaCost):
+            self._cost = cost
+        else:
+            raise ValueError("Expected cost to be either UNKNOWN or a ManaCost.")
+
+        if isinstance(mvid, Unknown):
+            self._mvid = mvid
+        else:
+            self._mvid = int(mvid)
+
+    @property
+    def title(self) -> str:
+        return self._title
+
+    @property
+    def cost(self) -> Union[Unknown, ManaCost]:
+        return self._cost
+
+    @property
+    def mvid(self) -> Union[Unknown, int]:
+        """The multiverse ID."""
+        return self._mvid
