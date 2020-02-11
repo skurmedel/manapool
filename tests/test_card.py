@@ -76,3 +76,16 @@ def test_manacost_converted():
 
     cost = ManaCost()
     assert (cost.converted == 0)
+
+
+def test_manacost_equality():
+    cost1 = ManaCost({Colour.Black: 1, Colour.Generic: 4})
+    cost2 = ManaCost({c: 1 for c in Colour.pure()})
+    cost3 = ManaCost({Colour.Black: 1, Colour.Generic: 4})
+
+    assert (cost1 != cost2)
+    assert (cost1 == cost1)
+    assert (cost3 == cost1)
+
+    with pytest.raises(TypeError):
+        assert (cost1 == "Riemann")

@@ -137,3 +137,9 @@ class ManaCost:
     @property
     def red(self) -> int:
         return self[Colour.Red]
+
+    def __eq__(self, other):
+        if not isinstance(other, ManaCost):
+            raise TypeError("other must be a ManaCost object.")
+
+        return self._colours == other._colours
