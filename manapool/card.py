@@ -104,7 +104,7 @@ class ManaCost:
 
     def __eq__(self, other):
         if not isinstance(other, ManaCost):
-            raise TypeError("other must be a ManaCost object.")
+            return False
 
         return self._colours == other._colours
 
@@ -153,3 +153,8 @@ class Card:
     def mvid(self) -> Union[Unknown, int]:
         """The multiverse ID."""
         return self._mvid
+
+    def __eq__(self, other):
+        if not isinstance(other, Card):
+            return False
+        return self.title == other.title and self.cost == other.cost and self.mvid == other.mvid

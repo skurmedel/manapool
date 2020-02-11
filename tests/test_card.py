@@ -59,6 +59,30 @@ def test_card_title_str_converts():
         Card(Dummy())
 
 
+def test_card_equality():
+    a = Card("Riemann")
+    b = Card("Riemann")
+    assert (a == b)
+
+    b = Card("Euler")
+    assert (a != b)
+
+    b = Card("Riemann", mvid=123)
+    assert (a != b)
+
+    a = Card("Riemann", mvid=123)
+    assert (a == b)
+
+    a = Card("Riemann")
+    b = Card("Riemann", cost=ManaCost({Colour.Blue: 2}))
+    assert (a != b)
+
+    a = Card("Riemann", cost=ManaCost({Colour.Blue: 2}))
+    assert (a == b)
+
+    a = Card("Riemann", cost=ManaCost({Colour.Blue: 2}), mvid=123)
+    assert (a != b)
+
 # MANACOST TESTS
 
 def test_manacost_constructor_dict_of_colors():
@@ -104,5 +128,4 @@ def test_manacost_equality():
     assert (cost1 == cost1)
     assert (cost3 == cost1)
 
-    with pytest.raises(TypeError):
-        assert (cost1 == "Riemann")
+    assert (cost1 != "Riemann")
