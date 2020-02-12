@@ -1,5 +1,6 @@
 import pytest
 from manapool.card import Card, UNKNOWN, ManaCost, Colour
+import itertools
 
 
 # CARD TESTS
@@ -36,7 +37,7 @@ def test_card_constructor_mvid_accepts_unknown_or_int():
 
 
 def test_card_constructor_cost_accepts_unknown_or_manacost():
-    cost = ManaCost({Colour.Blue:2})
+    cost = ManaCost({Colour.Blue: 2})
     c = Card("Purphoros's Intervention", cost=cost)
     assert (c.cost == cost)
 
@@ -82,6 +83,21 @@ def test_card_equality():
 
     a = Card("Riemann", cost=ManaCost({Colour.Blue: 2}), mvid=123)
     assert (a != b)
+
+
+def test_card_hash():
+    def generate_args():
+        products = itertools.product(["A"], [ManaCost({Colour.Red: 3}), UNKNOWN], [123, UNKNOWN])
+        keyvalue_combos = [{"title": t, "cost": c, "mvid": id} for t, c, id in products]
+        return keyvalue_combos
+
+    for kwargs in generate_args():
+        a = Card(**kwargs)
+        b = Card(**kwargs)
+
+        assert (hash(a) == hash(b))
+        assert (a == b)
+
 
 # MANACOST TESTS
 

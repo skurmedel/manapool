@@ -25,3 +25,24 @@ class Deck(Tuple[Card]):
     @property
     def empty(self) -> bool:
         return len(self) == 0
+
+
+def tally(deck: Deck) -> Sequence[Tuple[Card, int]]:
+    """Tallies a Deck: counts each instance of a card. This is a very basic and useful operation.
+
+    :raises ValueError: deck is not a Deck.
+
+    :param deck: The deck to tally.
+    :return: A sequence of tuples, where the first member is the card and the second the count.
+    """
+    if not isinstance(deck, Deck):
+        raise ValueError("Expected a Deck.")
+
+    counts = {}
+    for card in deck:
+        if card in counts:
+            counts[card] = counts[card] + 1
+        else:
+            counts[card] = 1
+
+    return tuple((card, count) for card, count in counts.items())

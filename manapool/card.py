@@ -53,7 +53,7 @@ class ManaCost:
                 Mapping[Colour, int] - the cost for the present values is set to the positive associated integer, all
                 other colours are zero cost.
         """
-        self._colours = [0] * len(Colour)
+        colours = [0] * len(Colour)
         if values is None:
             raise ValueError("None is not an accepted value.")
         for k, v in values.items():
@@ -61,7 +61,10 @@ class ManaCost:
                 raise ValueError("non integer argument.")
             if v < 0:
                 raise ValueError("Negative cost.")
-            self._colours[k.value] = v
+            colours[k.value] = v
+
+        self._colours = tuple(colours)
+        self._converted = sum(self._colours)
 
     def __getitem__(self, item: Colour) -> int:
         """Retrieves the cost for the given colour."""
@@ -72,7 +75,7 @@ class ManaCost:
     @property
     def converted(self) -> int:
         """Returns the converted mana cost (CMC). It's the sum of the costs of each individual colour."""
-        return sum(self._colours)
+        return self._converted
 
     @property
     def less(self) -> int:
@@ -107,6 +110,9 @@ class ManaCost:
             return False
 
         return self._colours == other._colours
+
+    def __hash__(self):
+        return hash(self._colours)
 
 
 class Card:
@@ -155,6 +161,13 @@ class Card:
         return self._mvid
 
     def __eq__(self, other):
+        """Compares two Card instances. Each attribute in self is tested against it's sibling in other.
+
+        Notably if an attribute is UNKNOWN it is only equal if both are UNKNOWN.
+        """
         if not isinstance(other, Card):
             return False
         return self.title == other.title and self.cost == other.cost and self.mvid == other.mvid
+
+    def __hash__(self):
+        return hash((self.title, self.cost, self.mvid))
