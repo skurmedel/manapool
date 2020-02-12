@@ -1,8 +1,8 @@
 from abc import abstractmethod
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Union
 
 from card import Card
-
+import random
 
 class Deck(Tuple[Card]):
     """Represents a Deck. Decks are immutable."""
@@ -46,3 +46,30 @@ def tally(deck: Deck) -> Sequence[Tuple[Card, int]]:
             counts[card] = 1
 
     return tuple((card, count) for card, count in counts.items())
+
+
+def opening_hand(deck: Deck, count: int = 7) -> Union[Tuple, Tuple[Card]]:
+    """Draws an opening hand from the given deck.
+
+    :param deck:
+        the deck to draw from, if it is empty, opening_hand always returns the empty tuple.
+    :param count:
+        how many cards to draw, may not be negative. If zero, returns the empty tuple.
+        default is 7 per the rules of standard Magic.
+        may not be less than len(deck).
+
+    :raise ValueError: count is negative. either parameter was of the wrong type.
+    """
+    if not isinstance(deck, Deck):
+        raise ValueError("Expected deck to be a Deck.")
+    if not isinstance(count, int) or count < 0:
+        raise ValueError("count must be an integer >= 0.")
+    if len(deck) < count:
+        raise ValueError("count cannot be less than the number of cards in the deck.")
+
+    if count == 0:
+        return ()
+    if len(deck) == 0:
+        return ()
+
+    return tuple(random.sample(deck, count))
