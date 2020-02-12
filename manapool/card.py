@@ -119,6 +119,16 @@ class Card:
     """Represents a MtG card. The only required attribute is the title.
 
     Cards are immutable. Clone with new values if you need to change an attribute.
+
+    The Card type is simplistic by choice. If you need to encode a richer set of data, simply subclass the Card type.
+
+    The Card type is also not supposed to check that the Card is legal or even exists, that's up to the user. Most
+    likely the data will be read from an API (that's why we provide the multiverse id field.) Magic the Gathering is
+    simply too flexible and vast for that to be practical. For example w allow for Cards that may not make sense, like a
+    basic land with a mana cost.
+
+    Most of the functions in manapool are designed to work with Card, since the data it encodes is enough for a great
+    deal of statistics and probabilities calculations pertinent to Magic the Gathering.
     """
 
     def __init__(self, title: str, cost: Union[Unknown, ManaCost] = UNKNOWN, mvid: Union[Unknown, int] = UNKNOWN):
