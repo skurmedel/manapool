@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Sequence, Tuple, Union
 
-from card import Card
+from .card import Card
 import random
 
 class Deck(Tuple[Card]):
