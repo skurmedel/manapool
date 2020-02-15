@@ -11,6 +11,21 @@ def test_deck_constructor_bad_inputs():
     with pytest.raises(ValueError):
         Deck(Card("Riemann"), Card("Euler"), True)
 
+    with pytest.raises(ValueError):
+        Deck((Card("Riemann"),))
+
+    with pytest.raises(TypeError):
+        Deck((None, Card("Riemann")))
+
+    with pytest.raises(ValueError):
+        Deck((-1, Card("Riemann")))
+
+    with pytest.raises(ValueError):
+        Deck((2, "Kolmogorov"))
+
+    with pytest.raises(ValueError):
+        Deck((2, Card("Riemann"), "Anything"))
+
 
 def test_deck_constructor_empty():
     d = Deck()
@@ -27,6 +42,16 @@ def test_deck_constructor_not_empty():
     assert (d[0] is a)
     assert (d[1] is b)
 
+
+def test_deck_constructor_tuples():
+    a = Card("Riemann")
+    b = Card("Kolmogorov")
+
+    d = Deck(a, (4, b))
+
+    assert (len(d) == 5)
+    assert (d.count(a) == 1)
+    assert (d.count(b) == 4)
 
 def test_deck_empty_equals_empty():
     assert (Deck() == Deck())
