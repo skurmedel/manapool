@@ -1,5 +1,5 @@
 from typing import Union, Mapping
-from enum import Enum, unique
+from enum import Flag, auto, unique
 
 
 class _Singleton(type):
@@ -25,7 +25,7 @@ UNKNOWN = Unknown()
 
 
 @unique
-class Colour(Enum):
+class Color(Flag):
     """Represents a mana colour. It also contains the Colourless and Generic pseudo-colours.
 
     Mainly used to specify mana costs.
@@ -37,53 +37,66 @@ class Colour(Enum):
         The colours are:
             white, blue, black, green, red (wubgr)
 
-        We allow for this inconsistency with the rules in the name of flexibility.
+        We allow for this inconsistency with the rules in the name of flexibility. Generic is not a colour either but
+        likewise, it's useful to treat it as one for mana cost reasons.
 
     """
 
-    White = 0
-    Blue = 1
-    Black = 2
-    Green = 3
-    Red = 4
-    Less = 5
-    Generic = 6
+    White = 1
+    Blue = 2
+    Black = 4
+    Green = 8
+    Red = 16
+    Less = 32
+    Generic = 64
 
     @classmethod
     def pure(cls):
         """Returns the WUBGR colours, not any of the pseudo-colours."""
-        return [Colour.White, Colour.Blue, Colour.Black, Colour.Green, Colour.Red]
+        return [Color.White, Color.Blue, Color.Black, Color.Green, Color.Red]
 
 
-def _parse_mana_cost(s: str, colours: list):
+def _parse_mana_cost(s: str):
     NEXT = 0
     ENTERED_PART = 1
     EXITING_PART = 2
 
     pure_mapping = {
-        "W": Colour.White,
-        "w": Colour.White,
-        "U": Colour.Blue,
-        "u": Colour.Blue,
-        "B": Colour.Black,
-        "b": Colour.Black,
-        "G": Colour.Green,
-        "g": Colour.Green,
-        "R": Colour.Red,
-        "r": Colour.Red
+        "W": Color.White,
+        "w": Color.White,
+        "U": Color.Blue,
+        "u": Color.Blue,
+        "B": Color.Black,
+        "b": Color.Black,
+        "G": Color.Green,
+        "g": Color.Green,
+        "R": Color.Red,
+        "r": Color.Red
     }
     generic_mapping = {
         str(i): i for i in range(0, 10)
     }
+
+    colours = {}
+    converted = 0
 
     state = NEXT
     for c in s:
         if state == ENTERED_PART:
             if c in "WUBGRwubgrX0123456789":
                 if c in pure_mapping:
-                    colours[pure_mapping[c].value] = colours[pure_mapping[c].value] + 1
+                    color = pure_mapping[c]
+                    if color in colours:
+                        colours[pure_mapping[c]] = colours[pure_mapping[c]] + 1
+                    else:
+                        colours[pure_mapping[c]] = 1
+                    converted += 1
                 elif c in "0123456789":
-                    colours[Colour.Generic.value] = colours[Colour.Generic.value] + generic_mapping[c]
+                    value = generic_mapping[c]
+                    if Color.Generic not in colours:
+                        colours[Color.Generic] = 0
+                    colours[Color.Generic] = colours[Color.Generic] + value
+                    converted += value
                 state = EXITING_PART
             else:
                 raise ValueError("Encountered unexpected symbol: {}".format(c))
@@ -99,21 +112,26 @@ def _parse_mana_cost(s: str, colours: list):
     if state != NEXT:
         raise ValueError("Unmatched { or }.")
 
+    return colours, converted
+
 
 class ManaCost:
     """Represents a mana cost. Can only deal with integer costs. This object acts immutably.
 
     .. note::
-        Technically a card can have no cost at all (not even zero) and can thus not be played by normal means.
+        Technically a card can have no cost at all (not even zero) and thus can not be played by normal means.
 
         This object can not represent such a "non-cost".
 
     .. note::
-        At the moment, a cost with hybrid mana can't be expressed. Phyraxian costs are not supported either.
-    """
-    __slots__ = ["_colours", "_converted"]
+        At the moment, a cost with moncolored hybrid mana can't be expressed. Phyraxian costs are not supported either.
 
-    def __init__(self, values: Union[Mapping[Colour, int], str] = {}):
+    .. note::
+        Can not express X generic mana in a cost at the moment.
+    """
+    __slots__ = ["_colours", "_converted", "_hash"]
+
+    def __init__(self, values: Union[Mapping[Color, int], str] = {}):
         """
         values may be one of the following:
 
@@ -123,36 +141,60 @@ class ManaCost:
         str:
         A string of the following format:
 
-            part    = "{" [WUBGRwubgrX0-9] "}"
+            part    = "{" [WUBGRwubgr0-9] "}"
             cost    = part+
 
-        Each letter represents a colour, "X", x amount of generic mana, and a digit represents an amount of generic mana.
+        Each letter represents a colour, and a digit represents an amount of generic mana.
         After parsing, the number of parts for each colour is summed.
 
         Thus, to say 2 white mana and 3 generic, we pass the string "{W}{W}{3}". You might also say "{W}{W}{1}{2}" etc.
         To say 1 blue, 1 red, 1 generic, we pass "{U}{R}{1}".
         """
-        colours = [0] * len(Colour)
+        colours = {}
+        self._converted = 0
         if values is None:
             raise ValueError("None is not an accepted value.")
         if isinstance(values, str):
-            _parse_mana_cost(values, colours)
+            colours, self._converted = _parse_mana_cost(values)
         else:
             for k, v in values.items():
                 if not isinstance(v, int):
                     raise ValueError("non integer argument.")
                 if v < 0:
                     raise ValueError("Negative cost.")
-                colours[k.value] = v
+                colours[k] = v
+                self._converted += v
 
-        self._colours = tuple(colours)
-        self._converted = sum(self._colours)
+        self._colours = colours
+        self._hash = hash(tuple(self._colours))
 
-    def __getitem__(self, item: Colour) -> int:
-        """Retrieves the cost for the given colour."""
-        if not isinstance(item, Colour):
-            raise ValueError("Expected an enum value of Colour.")
-        return self._colours[item.value]
+    def __getitem__(self, item: Color) -> int:
+        """Retrieves the cost for the given colour or hybrid, only the exact combination is counted.
+
+        For example: given a cost {W/B}{W} and you do cost[Color.White] you will get 1 back.
+
+            >>> c = ManaCost({Color.White | Color.Black: 1, Color.White: 1})
+            >>> c[Color.White]
+            1
+        """
+        if not isinstance(item, Color):
+            raise ValueError("Expected an flag value of Colour.")
+        return self._colours.get(item, 0)
+
+    def total(self, c: Color) -> int:
+        """Retrieves the sum of all the costs with the given colour, hybrids included.
+
+            >>> c = ManaCost({Color.White | Color.Red: 1, Color.White: 1, Color.Generic: 2})
+            >>> c.total(Color.White)
+            2
+        """
+        if not isinstance(c, Color):
+            raise ValueError("Expected a Color flag.")
+        t = 0
+        for k in self._colours:
+            if c in k:
+                t += self._colours[k]
+        return t
 
     @property
     def converted(self) -> int:
@@ -161,31 +203,37 @@ class ManaCost:
 
     @property
     def less(self) -> int:
-        return self[Colour.Less]
+        return self[Color.Less]
 
     @property
     def generic(self) -> int:
-        return self[Colour.Generic]
+        """Count of cards white a White colour. This counts hybrid costs as well."""
+        return self.total(Color.Generic)
 
     @property
     def white(self) -> int:
-        return self[Colour.White]
+        """White colour cost. This counts hybrid costs as well."""
+        return self.total(Color.White)
 
     @property
     def blue(self) -> int:
-        return self[Colour.Blue]
+        """Blue colour cost. This counts hybrid costs as well."""
+        return self.total(Color.Blue)
 
     @property
     def black(self) -> int:
-        return self[Colour.Black]
+        """Black colour cost. This counts hybrid costs as well."""
+        return self.total(Color.Black)
 
     @property
     def green(self) -> int:
-        return self[Colour.Green]
+        """Green colour cost. This counts hybrid costs as well."""
+        return self.total(Color.Green)
 
     @property
     def red(self) -> int:
-        return self[Colour.Red]
+        """Red colour cost. This counts hybrid costs as well."""
+        return self.total(Color.Red)
 
     def __eq__(self, other):
         if not isinstance(other, ManaCost):
@@ -194,28 +242,28 @@ class ManaCost:
         return self._colours == other._colours
 
     def __hash__(self):
-        return hash(self._colours)
+        return self._hash
 
     def __repr__(self):
         """Prints the card in a format suitable for the constructor of ManaCost."""
         pure_mapping = {
-            Colour.White: "{W}",
-            Colour.Blue: "{U}",
-            Colour.Black: "{B}",
-            Colour.Green: "{G}",
-            Colour.Red: "{R}",
+            Color.White: "{W}",
+            Color.Blue: "{U}",
+            Color.Black: "{B}",
+            Color.Green: "{G}",
+            Color.Red: "{R}",
         }
 
         parts = []
         if self.converted == 0:
             parts = ["{0}"]
         else:
-            for c in Colour:
-                if c is Colour.Generic:
+            for c in Color:
+                if c is Color.Generic:
                     val = self[c]
                     if val > 0:
                         parts.extend(["{", str(val), "}"])
-                elif c is Colour.Less:
+                elif c is Color.Less:
                     parts.extend("{C}" * self[c])
                 else:
                     parts.extend(pure_mapping[c] * self[c])

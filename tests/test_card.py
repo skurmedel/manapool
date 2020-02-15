@@ -1,5 +1,5 @@
 import pytest
-from manapool.card import Card, UNKNOWN, ManaCost, Colour
+from manapool.card import Card, UNKNOWN, ManaCost, Color
 import itertools
 
 
@@ -37,7 +37,7 @@ def test_card_constructor_mvid_accepts_unknown_or_int():
 
 
 def test_card_constructor_cost_accepts_unknown_or_manacost():
-    cost = ManaCost({Colour.Blue: 2})
+    cost = ManaCost({Color.Blue: 2})
     c = Card("Purphoros's Intervention", cost=cost)
     assert (c.cost == cost)
 
@@ -75,19 +75,19 @@ def test_card_equality():
     assert (a == b)
 
     a = Card("Riemann")
-    b = Card("Riemann", cost=ManaCost({Colour.Blue: 2}))
+    b = Card("Riemann", cost=ManaCost({Color.Blue: 2}))
     assert (a != b)
 
-    a = Card("Riemann", cost=ManaCost({Colour.Blue: 2}))
+    a = Card("Riemann", cost=ManaCost({Color.Blue: 2}))
     assert (a == b)
 
-    a = Card("Riemann", cost=ManaCost({Colour.Blue: 2}), mvid=123)
+    a = Card("Riemann", cost=ManaCost({Color.Blue: 2}), mvid=123)
     assert (a != b)
 
 
 def test_card_hash():
     def generate_args():
-        products = itertools.product(["A"], [ManaCost({Colour.Red: 3}), UNKNOWN], [123, UNKNOWN])
+        products = itertools.product(["A"], [ManaCost({Color.Red: 3}), UNKNOWN], [123, UNKNOWN])
         keyvalue_combos = [{"title": t, "cost": c, "mvid": id} for t, c, id in products]
         return keyvalue_combos
 
@@ -102,21 +102,28 @@ def test_card_hash():
 # MANACOST TESTS
 
 def test_manacost_constructor_dict_of_colors():
-    cost = ManaCost({Colour.Black: 1, Colour.Generic: 4})
+    cost = ManaCost({Color.Black: 1, Color.Generic: 4})
 
     assert (cost.black == 1)
     assert (cost.generic == 4)
-    for c in (col for col in Colour if col not in [Colour.Black, Colour.Generic]):
+    for c in (col for col in Color if col not in [Color.Black, Color.Generic]):
         assert (cost[c] == 0)
 
-    cost = ManaCost({c: 1 for c in Colour.pure()})
-    for c in Colour.pure():
+    cost = ManaCost({c: 1 for c in Color.pure()})
+    for c in Color.pure():
         assert (cost[c] == 1)
 
     with pytest.raises(ValueError):
-        cost = ManaCost({Colour.Red: 1, Colour.Blue: -1})
+        cost = ManaCost({Color.Red: 1, Color.Blue: -1})
     with pytest.raises(ValueError):
-        cost = ManaCost({Colour.Red: 1, Colour.Blue: "Euler"})
+        cost = ManaCost({Color.Red: 1, Color.Blue: "Euler"})
+
+    cost = ManaCost({Color.Black | Color.Green: 2, Color.Generic: 2})
+
+    assert (cost.black == 2)
+    assert (cost.green == 2)
+    assert (cost.generic == 2)
+    assert (cost.converted == 4)
 
 
 def test_manacost_constructor_str():
@@ -126,20 +133,20 @@ def test_manacost_constructor_str():
             ManaCost(s)
 
     cases = [
-        ("{W}", ManaCost({Colour.White: 1})),
-        ("{U}", ManaCost({Colour.Blue: 1})),
-        ("{B}", ManaCost({Colour.Black: 1})),
-        ("{G}", ManaCost({Colour.Green: 1})),
-        ("{R}", ManaCost({Colour.Red: 1})),
-        ("{w}", ManaCost({Colour.White: 1})),
-        ("{u}", ManaCost({Colour.Blue: 1})),
-        ("{b}", ManaCost({Colour.Black: 1})),
-        ("{g}", ManaCost({Colour.Green: 1})),
-        ("{r}", ManaCost({Colour.Red: 1})),
-        ("{W}{U}{B}{G}{R}", ManaCost({Colour.White: 1, Colour.Blue: 1, Colour.Black: 1, Colour.Green: 1, Colour.Red: 1})),
-        ("{R}{W}{R}", ManaCost({Colour.White: 1, Colour.Red: 2})),
-        ("{W}{1}{2}", ManaCost({Colour.White: 1, Colour.Generic: 3})),
-        ("{0}", ManaCost({Colour.Generic: 0})),
+        ("{W}", ManaCost({Color.White: 1})),
+        ("{U}", ManaCost({Color.Blue: 1})),
+        ("{B}", ManaCost({Color.Black: 1})),
+        ("{G}", ManaCost({Color.Green: 1})),
+        ("{R}", ManaCost({Color.Red: 1})),
+        ("{w}", ManaCost({Color.White: 1})),
+        ("{u}", ManaCost({Color.Blue: 1})),
+        ("{b}", ManaCost({Color.Black: 1})),
+        ("{g}", ManaCost({Color.Green: 1})),
+        ("{r}", ManaCost({Color.Red: 1})),
+        ("{W}{U}{B}{G}{R}", ManaCost({Color.White: 1, Color.Blue: 1, Color.Black: 1, Color.Green: 1, Color.Red: 1})),
+        ("{R}{W}{R}", ManaCost({Color.White: 1, Color.Red: 2})),
+        ("{W}{1}{2}", ManaCost({Color.White: 1, Color.Generic: 3})),
+        ("{0}", ManaCost({Color.Generic: 0})),
     ]
 
     for case, expected in cases:
@@ -153,10 +160,10 @@ def test_manacost_constructor_none_values():
 
 
 def test_manacost_converted():
-    cost = ManaCost({Colour.Black: 1, Colour.Generic: 4})
+    cost = ManaCost({Color.Black: 1, Color.Generic: 4})
     assert (cost.converted == 5)
 
-    cost = ManaCost({c: 1 for c in Colour.pure()})
+    cost = ManaCost({c: 1 for c in Color.pure()})
     assert (cost.converted == 5)
 
     cost = ManaCost()
@@ -164,9 +171,9 @@ def test_manacost_converted():
 
 
 def test_manacost_equality():
-    cost1 = ManaCost({Colour.Black: 1, Colour.Generic: 4})
-    cost2 = ManaCost({c: 1 for c in Colour.pure()})
-    cost3 = ManaCost({Colour.Black: 1, Colour.Generic: 4})
+    cost1 = ManaCost({Color.Black: 1, Color.Generic: 4})
+    cost2 = ManaCost({c: 1 for c in Color.pure()})
+    cost3 = ManaCost({Color.Black: 1, Color.Generic: 4})
 
     assert (cost1 != cost2)
     assert (cost1 == cost1)
@@ -177,16 +184,16 @@ def test_manacost_equality():
 
 def test_manacost_repr():
     cases = [
-        ("{W}", ManaCost({Colour.White: 1})),
-        ("{U}", ManaCost({Colour.Blue: 1})),
-        ("{B}", ManaCost({Colour.Black: 1})),
-        ("{G}", ManaCost({Colour.Green: 1})),
-        ("{R}", ManaCost({Colour.Red: 1})),
+        ("{W}", ManaCost({Color.White: 1})),
+        ("{U}", ManaCost({Color.Blue: 1})),
+        ("{B}", ManaCost({Color.Black: 1})),
+        ("{G}", ManaCost({Color.Green: 1})),
+        ("{R}", ManaCost({Color.Red: 1})),
         ("{W}{U}{B}{G}{R}",
-         ManaCost({Colour.White: 1, Colour.Blue: 1, Colour.Black: 1, Colour.Green: 1, Colour.Red: 1})),
-        ("{W}{R}{R}", ManaCost({Colour.White: 1, Colour.Red: 2})),
-        ("{W}{3}", ManaCost({Colour.White: 1, Colour.Generic: 3})),
-        ("{0}", ManaCost({Colour.Generic: 0})),
+         ManaCost({Color.White: 1, Color.Blue: 1, Color.Black: 1, Color.Green: 1, Color.Red: 1})),
+        ("{W}{R}{R}", ManaCost({Color.White: 1, Color.Red: 2})),
+        ("{W}{3}", ManaCost({Color.White: 1, Color.Generic: 3})),
+        ("{0}", ManaCost({Color.Generic: 0})),
     ]
 
     for expected, case in cases:

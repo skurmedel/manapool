@@ -86,7 +86,7 @@ first_hand = opening_hand(deck)
 ### Limitations
 
 - does not support Phyraxian costs (where you may choose to pay with life).
-- does not support hybrid mana (this will be implemented soon)
+- does not support moncolored hybrid mana.
 - does not support generic mana costs above 9 in certain cases.
 
 ## Requirements:
