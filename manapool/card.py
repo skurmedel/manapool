@@ -26,15 +26,28 @@ UNKNOWN = Unknown()
 
 @unique
 class Colour(Enum):
-    """Represents a mana colour. It also contains the Colourless and Generic pseudo-colours. """
+    """Represents a mana colour. It also contains the Colourless and Generic pseudo-colours.
 
-    Less = 0
-    Generic = 1
-    White = 2
-    Blue = 3
-    Black = 4
-    Green = 5
-    Red = 6
+    Mainly used to specify mana costs.
+
+    .. note::
+        According to the MtG rules (as of feb 2020), "colorless is not a color". But there have been a set with colorless
+        mana costs.
+
+        The colours are:
+            white, blue, black, green, red (wubgr)
+
+        We allow for this inconsistency with the rules in the name of flexibility.
+
+    """
+
+    White = 0
+    Blue = 1
+    Black = 2
+    Green = 3
+    Red = 4
+    Less = 5
+    Generic = 6
 
     @classmethod
     def pure(cls):
@@ -42,26 +55,95 @@ class Colour(Enum):
         return [Colour.White, Colour.Blue, Colour.Black, Colour.Green, Colour.Red]
 
 
+def _parse_mana_cost(s: str, colours: list):
+    NEXT = 0
+    ENTERED_PART = 1
+    EXITING_PART = 2
+
+    pure_mapping = {
+        "W": Colour.White,
+        "w": Colour.White,
+        "U": Colour.Blue,
+        "u": Colour.Blue,
+        "B": Colour.Black,
+        "b": Colour.Black,
+        "G": Colour.Green,
+        "g": Colour.Green,
+        "R": Colour.Red,
+        "r": Colour.Red
+    }
+    generic_mapping = {
+        str(i): i for i in range(0, 10)
+    }
+
+    state = NEXT
+    for c in s:
+        if state == ENTERED_PART:
+            if c in "WUBGRwubgrX0123456789":
+                if c in pure_mapping:
+                    colours[pure_mapping[c].value] = colours[pure_mapping[c].value] + 1
+                elif c in "0123456789":
+                    colours[Colour.Generic.value] = colours[Colour.Generic.value] + generic_mapping[c]
+                state = EXITING_PART
+            else:
+                raise ValueError("Encountered unexpected symbol: {}".format(c))
+        elif state == EXITING_PART:
+            if c != "}":
+                raise ValueError("Expected closing }.")
+            state = NEXT
+        elif c == "{":
+            state = ENTERED_PART
+        else:
+            raise ValueError("Encountered unexpected symbol: {}".format(c))
+
+    if state != NEXT:
+        raise ValueError("Unmatched { or }.")
+
+
 class ManaCost:
-    """Represents a mana cost. Can only deal with integer costs. This object acts immutably."""
+    """Represents a mana cost. Can only deal with integer costs. This object acts immutably.
+
+    .. note::
+        Technically a card can have no cost at all (not even zero) and can thus not be played by normal means.
+
+        This object can not represent such a "non-cost".
+
+    .. note::
+        At the moment, a cost with hybrid mana can't be expressed. Phyraxian costs are not supported either.
+    """
     __slots__ = ["_colours", "_converted"]
 
-    def __init__(self, values: Union[Mapping[Colour, int]] = {}):
+    def __init__(self, values: Union[Mapping[Colour, int], str] = {}):
         """
-        :param values:
-            May be one of the following:
-                Mapping[Colour, int] - the cost for the present values is set to the positive associated integer, all
-                other colours are zero cost.
+        values may be one of the following:
+
+        Mapping[Colour, int]:
+        the cost for the present values is set to the positive associated integer, all other colours are zero cost.
+
+        str:
+        A string of the following format:
+
+            part    = "{" [WUBGRwubgrX0-9] "}"
+            cost    = part+
+
+        Each letter represents a colour, "X", x amount of generic mana, and a digit represents an amount of generic mana.
+        After parsing, the number of parts for each colour is summed.
+
+        Thus, to say 2 white mana and 3 generic, we pass the string "{W}{W}{3}". You might also say "{W}{W}{1}{2}" etc.
+        To say 1 blue, 1 red, 1 generic, we pass "{U}{R}{1}".
         """
         colours = [0] * len(Colour)
         if values is None:
             raise ValueError("None is not an accepted value.")
-        for k, v in values.items():
-            if not isinstance(v, int):
-                raise ValueError("non integer argument.")
-            if v < 0:
-                raise ValueError("Negative cost.")
-            colours[k.value] = v
+        if isinstance(values, str):
+            _parse_mana_cost(values, colours)
+        else:
+            for k, v in values.items():
+                if not isinstance(v, int):
+                    raise ValueError("non integer argument.")
+                if v < 0:
+                    raise ValueError("Negative cost.")
+                colours[k.value] = v
 
         self._colours = tuple(colours)
         self._converted = sum(self._colours)
@@ -113,6 +195,32 @@ class ManaCost:
 
     def __hash__(self):
         return hash(self._colours)
+
+    def __repr__(self):
+        """Prints the card in a format suitable for the constructor of ManaCost."""
+        pure_mapping = {
+            Colour.White: "{W}",
+            Colour.Blue: "{U}",
+            Colour.Black: "{B}",
+            Colour.Green: "{G}",
+            Colour.Red: "{R}",
+        }
+
+        parts = []
+        if self.converted == 0:
+            parts = ["{0}"]
+        else:
+            for c in Colour:
+                if c is Colour.Generic:
+                    val = self[c]
+                    if val > 0:
+                        parts.extend(["{", str(val), "}"])
+                elif c is Colour.Less:
+                    parts.extend("{C}" * self[c])
+                else:
+                    parts.extend(pure_mapping[c] * self[c])
+
+        return "".join(parts)
 
 
 class Card:

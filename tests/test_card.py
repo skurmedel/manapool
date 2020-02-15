@@ -119,6 +119,34 @@ def test_manacost_constructor_dict_of_colors():
         cost = ManaCost({Colour.Red: 1, Colour.Blue: "Euler"})
 
 
+def test_manacost_constructor_str():
+    for s in ["{W}{", "{", "W", "W}", "{U}{WU}", "{W} {U}", "{ R}"]:
+        print(s)
+        with pytest.raises(ValueError):
+            ManaCost(s)
+
+    cases = [
+        ("{W}", ManaCost({Colour.White: 1})),
+        ("{U}", ManaCost({Colour.Blue: 1})),
+        ("{B}", ManaCost({Colour.Black: 1})),
+        ("{G}", ManaCost({Colour.Green: 1})),
+        ("{R}", ManaCost({Colour.Red: 1})),
+        ("{w}", ManaCost({Colour.White: 1})),
+        ("{u}", ManaCost({Colour.Blue: 1})),
+        ("{b}", ManaCost({Colour.Black: 1})),
+        ("{g}", ManaCost({Colour.Green: 1})),
+        ("{r}", ManaCost({Colour.Red: 1})),
+        ("{W}{U}{B}{G}{R}", ManaCost({Colour.White: 1, Colour.Blue: 1, Colour.Black: 1, Colour.Green: 1, Colour.Red: 1})),
+        ("{R}{W}{R}", ManaCost({Colour.White: 1, Colour.Red: 2})),
+        ("{W}{1}{2}", ManaCost({Colour.White: 1, Colour.Generic: 3})),
+        ("{0}", ManaCost({Colour.Generic: 0})),
+    ]
+
+    for case, expected in cases:
+        actual = ManaCost(case)
+        assert (actual == expected)
+
+
 def test_manacost_constructor_none_values():
     with pytest.raises(ValueError):
         cost = ManaCost(None)
@@ -145,3 +173,21 @@ def test_manacost_equality():
     assert (cost3 == cost1)
 
     assert (cost1 != "Riemann")
+
+
+def test_manacost_repr():
+    cases = [
+        ("{W}", ManaCost({Colour.White: 1})),
+        ("{U}", ManaCost({Colour.Blue: 1})),
+        ("{B}", ManaCost({Colour.Black: 1})),
+        ("{G}", ManaCost({Colour.Green: 1})),
+        ("{R}", ManaCost({Colour.Red: 1})),
+        ("{W}{U}{B}{G}{R}",
+         ManaCost({Colour.White: 1, Colour.Blue: 1, Colour.Black: 1, Colour.Green: 1, Colour.Red: 1})),
+        ("{W}{R}{R}", ManaCost({Colour.White: 1, Colour.Red: 2})),
+        ("{W}{3}", ManaCost({Colour.White: 1, Colour.Generic: 3})),
+        ("{0}", ManaCost({Colour.Generic: 0})),
+    ]
+
+    for expected, case in cases:
+        assert (str(case) == expected)

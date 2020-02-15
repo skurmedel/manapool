@@ -82,6 +82,13 @@ first_hand = opening_hand(deck)
  - try to describe the interface in the doc, test the interface.
  - group operations in modules, for example deck.tally takes a Deck.
 
+
+### Limitations
+
+- does not support Phyraxian costs (where you may choose to pay with life).
+- does not support hybrid mana (this will be implemented soon)
+- does not support generic mana costs above 9 in certain cases.
+
 ## Requirements:
 
 Python 3.7+. pytest for running the tests.
